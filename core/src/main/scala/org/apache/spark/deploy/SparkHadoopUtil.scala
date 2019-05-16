@@ -85,7 +85,7 @@ class SparkHadoopUtil extends Logging {
   /**
    * Appends S3-specific, spark.hadoop.*, and spark.buffer.size configurations to a Hadoop
    * configuration.
-    * 给hadoop添加一些配置
+    * 将特定于S3的spark.hadoop。和spark.buffer.size配置附加到Hadoop 配置
    */
   def appendS3AndSparkHadoopConfigurations(conf: SparkConf, hadoopConf: Configuration): Unit = {
     // Note: this null check is around more than just access to the "conf" object to maintain

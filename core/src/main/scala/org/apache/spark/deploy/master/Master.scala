@@ -38,8 +38,7 @@ import org.apache.spark.rpc._
 import org.apache.spark.serializer.{JavaSerializer, Serializer}
 import org.apache.spark.util.{ThreadUtils, Utils}
 
-//private[deploy] 意思只能在deploy这个包下访问
-// 这个类下面有一个class Master 还有一个伴生对象object Master
+
 private[deploy] class Master(
     override val rpcEnv: RpcEnv,
     address: RpcAddress,

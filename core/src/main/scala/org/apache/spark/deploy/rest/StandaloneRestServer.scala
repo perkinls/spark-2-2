@@ -27,16 +27,8 @@ import org.apache.spark.rpc.RpcEndpointRef
 import org.apache.spark.util.Utils
 
 /**
-  * A server that responds to requests submitted by the [[RestSubmissionClient]].
-  * This is intended to be embedded in the standalone Master and used in cluster mode only.
   *
   * 响应[[RestSubmissionClient]]提交的请求的服务器。它的目的是嵌入到独立的主程序中，并只在集群模式中使用。
-  *
-  * This server responds with different HTTP codes depending on the situation:
-  *   200 OK - Request was processed successfully
-  *   400 BAD REQUEST - Request was malformed, not successfully validated, or of unexpected type
-  *   468 UNKNOWN PROTOCOL VERSION - Request specified a protocol this server does not understand
-  *   500 INTERNAL SERVER ERROR - Server throws an exception internally while processing the request
   *
   *   该服务器根据情况响应不同的HTTP代码:
   *   200 OK           - Request被成功处理
@@ -44,11 +36,6 @@ import org.apache.spark.util.Utils
   *   468 未知协议版本   -请求指定该服务器不懂的协议
   *   500 内部服务器错误  ——服务器在处理请求时在内部抛出一个异常
   *
-  * The server always includes a JSON representation of the relevant [[SubmitRestProtocolResponse]]
-  * in the HTTP body. If an error occurs, however, the server will include an [[ErrorResponse]]
-  * instead of the one expected by the client. If the construction of this error response itself
-  * fails, the response will consist of an empty body with a response code that indicates internal
-  * server error.
   *
   * 服务器总是包含一个JSON表示相关的[[SubmitRestProtocolResponse]]在HTTP的body中。
   * 然而，如果出现错误，服务器将包括[[ErrorResponse]]而不是客户机所期望的。如果该错误响应本身的构建失败，
@@ -78,7 +65,6 @@ private[deploy] class StandaloneRestServer(
 }
 
 /**
-  * A servlet for handling kill requests passed to the [[StandaloneRestServer]].
   * 一个用于处理传递给[[StandaloneRestServer]]的servlet。
   */
 private[rest] class StandaloneKillRequestServlet(masterEndpoint: RpcEndpointRef, conf: SparkConf)
@@ -97,7 +83,6 @@ private[rest] class StandaloneKillRequestServlet(masterEndpoint: RpcEndpointRef,
 }
 
 /**
-  * A servlet for handling status requests passed to the [[StandaloneRestServer]].
   * 一个处理状态请求的servlet被传递给[[StandaloneRestServer]]。
   */
 private[rest] class StandaloneStatusRequestServlet(masterEndpoint: RpcEndpointRef, conf: SparkConf)
@@ -120,7 +105,6 @@ private[rest] class StandaloneStatusRequestServlet(masterEndpoint: RpcEndpointRe
 }
 
 /**
-  * A servlet for handling submit requests passed to the [[StandaloneRestServer]].
   * 一个处理提交请求的servlet被传递给[[StandaloneRestServer]]。
   */
 private[rest] class StandaloneSubmitRequestServlet(
@@ -130,13 +114,7 @@ private[rest] class StandaloneSubmitRequestServlet(
   extends SubmitRequestServlet {
 
   /**
-    * Build a driver description from the fields specified in the submit request.
     * 从提交请求中指定的字段中构建驱动描述。
-    *
-    * This involves constructing a command that takes into account memory, java options,
-    * classpath and other settings to launch the driver. This does not currently consider
-    * fields used by python applications since python is not supported in standalone
-    * cluster mode yet.
     *
     * 这包括构造一个命令，它考虑到内存、java选项、类路径和其他设置来启动驱动程序。
     * 目前还没有考虑python应用程序使用的字段，因为python在独立集群模式下还不支持。
@@ -161,7 +139,9 @@ private[rest] class StandaloneSubmitRequestServlet(
     val appArgs = request.appArgs
     val environmentVariables = request.environmentVariables
 
-    // Construct driver description
+    /**
+      * false表示不去加载所有的系统环境变量
+      */
     val conf = new SparkConf(false)
       .setAll(sparkProperties)
       .set("spark.master", masterUrl)
@@ -182,12 +162,7 @@ private[rest] class StandaloneSubmitRequestServlet(
   }
 
   /**
-    * Handle the submit request and construct an appropriate response to return to the client.
-    *
     * 处理提交请求，并构造相应的响应返回给客户端。
-    *
-    * This assumes that the request message is already successfully validated.
-    * If the request message is not of the expected type, return error to the client.
     *
     * 这假定请求消息已经成功验证。如果请求消息不属于预期类型，则将错误返回给客户端。
     */
@@ -197,9 +172,14 @@ private[rest] class StandaloneSubmitRequestServlet(
                                        responseServlet: HttpServletResponse): SubmitRestProtocolResponse = {
     requestMessage match {
       case submitRequest: CreateSubmissionRequest =>
+
+        //准备好所有参数
         val driverDescription = buildDriverDescription(submitRequest)
+
+        //正式向master提交SubmitDriver请求
         val response = masterEndpoint.askSync[DeployMessages.SubmitDriverResponse](
           DeployMessages.RequestSubmitDriver(driverDescription))
+
         val submitResponse = new CreateSubmissionResponse
         submitResponse.serverSparkVersion = sparkVersion
         submitResponse.message = response.message

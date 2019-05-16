@@ -44,30 +44,20 @@ import org.apache.spark.network.protocol.StreamRequest;
 import static org.apache.spark.network.util.NettyUtils.getRemoteAddress;
 
 /**
- * Client for fetching consecutive chunks of a pre-negotiated stream. This API is intended to allow
- * efficient transfer of a large amount of data, broken up into chunks with size ranging from
- * hundreds of KB to a few MB.
  *
- * Note that while this client deals with the fetching of chunks from a stream (i.e., data plane),
- * the actual setup of the streams is done outside the scope of the transport layer. The convenience
- * method "sendRPC" is provided to enable control plane communication between the client and server
- * to perform this setup.
- *
- * For example, a typical workflow might be:
- * client.sendRPC(new OpenFile("/foo")) --&gt; returns StreamId = 100
- * client.fetchChunk(streamId = 100, chunkIndex = 0, callback)
- * client.fetchChunk(streamId = 100, chunkIndex = 1, callback)
- * ...
- * client.sendRPC(new CloseStream(100))
- *
- * Construct an instance of TransportClient using {@link TransportClientFactory}. A single
- * TransportClient may be used for multiple streams, but any given stream must be restricted to a
- * single client, in order to avoid out-of-order responses.
- *
- * NB: This class is used to make requests to the server, while {@link TransportResponseHandler} is
- * responsible for handling responses from the server.
- *
- * Concurrency: thread safe and can be called from multiple threads.
+ * =====>>创建TransportClient
+ * 客户端用于获取预先协商的流的连续块。此API旨在允许*有效传输大量数据，分解为大小从几百KB到几MB的块。
+ * 请注意，虽然此客户端处理从流（即数据平面）获取块的情况，但是流的实际设置是在传输层的范围之外完成的。提供方便方法
+ * “sendRPC”以使客户端和服务器之间的控制平面通信能够执行该设置。
+ * 例如，典型的工作流程可能是：
+ *  client.sendRPC（new OpenFile（“/ foo”）） - ＆gt;返回StreamId = 100
+ *  client.fetchChunk（streamId = 100，chunkIndex = 0，回调）
+ *  client.fetchChunk（streamId = 100，chunkIndex = 1，回调）
+ *  ...  client.sendRPC（new CloseStream（100）
+ *使用{@link TransportClientFactory}构造TransportClient的实例。单个TransportClient可以用于多个流，
+ * 但是任何给定的流必须限制为*单个客户端，以避免无序响应。
+ * 注意：此类用于向服务器发出请求，而{@link TransportResponseHandler}负责处理来自服务器的响应。
+ * 并发：线程安全，可以从多个线程调用。
  */
 public class TransportClient implements Closeable {
   private static final Logger logger = LoggerFactory.getLogger(TransportClient.class);
@@ -96,18 +86,18 @@ public class TransportClient implements Closeable {
   }
 
   /**
-   * Returns the ID used by the client to authenticate itself when authentication is enabled.
    *
-   * @return The client ID, or null if authentication is disabled.
+   * 返回启用身份验证时客户端用于对自身进行身份验证的ID。
+   *
+   * @return 客户端ID，如果禁用身份验证，则为null。
    */
   public String getClientId() {
     return clientId;
   }
 
   /**
-   * Sets the authenticated client ID. This is meant to be used by the authentication layer.
-   *
-   * Trying to set a different client ID after it's been set will result in an exception.
+   * 设置经过身份验证的客户端ID。这意味着由身份验证层使用。
+   * 在设置后尝试设置不同的客户端ID将导致异常。
    */
   public void setClientId(String id) {
     Preconditions.checkState(clientId == null, "Client ID has already been set.");

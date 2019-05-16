@@ -34,9 +34,7 @@ import org.apache.spark.internal.Logging
 import org.apache.spark.rpc.RpcEndpointRef
 import org.apache.spark.util.{Clock, ShutdownHookManager, SystemClock, Utils}
 
-/**
-  * Manages the execution of one driver, including automatically restarting the driver on failure.
-  * This is currently only used in standalone cluster deploy mode.
+/** .
   *
   * 管理一个驱动程序Driver的执行execution，包括在driver运行失败的时候，自动重新启动驱动程序。
   * 目前只在独立集群部署模式中使用。
@@ -126,9 +124,9 @@ private[deploy] class DriverRunner(
     }.start()
   }
 
-  /** Terminate this driver (or prevent it from ever starting if not yet started)
+  /**
     *  终止这个驱动程序(或者如果还没有启动，就阻止它启动)
-    * */
+    */
   private[worker] def kill(): Unit = {
     logInfo("Killing driver process!")
     killed = true
@@ -144,8 +142,6 @@ private[deploy] class DriverRunner(
   }
 
   /**
-    * Creates the working directory for this driver.
-    * Will throw an exception if there are errors preparing the directory.
     *
     * 为该驱动程序创建工作目录。创建Driver的工作目录
     * 如果在准备目录时出现错误，将抛出异常。
@@ -161,8 +157,6 @@ private[deploy] class DriverRunner(
   }
 
   /**
-    * Download the user jar into the supplied directory and return its local path.
-    * Will throw an exception if there are errors downloading the jar.
     *
     * 将用户jar下载到所提供的目录并返回其本地路径。
     * 如果有错误下载jar，将抛出异常。

@@ -128,16 +128,14 @@ public class TransportContext {
   }
 
   /**
-   * Initializes a client or server Netty Channel Pipeline which encodes/decodes messages and
-   * has a {@link TransportChannelHandler} to handle request or
-   * response messages.
+   * 初始化对消息进行编码/解码的客户端或服务器Netty Channel Pipeline，
+   * 具有{@link TransportChannelHandler}来处理请求或*响应消息。
    *
-   * @param channel The channel to initialize.
-   * @param channelRpcHandler The RPC handler to use for the channel.
+   * @param channel 要初始化的通道
+   * @param channelRpcHandler 用于通道的RPC处理程序
    *
-   * @return Returns the created TransportChannelHandler, which includes a TransportClient that can
-   * be used to communicate on this channel. The TransportClient is directly associated with a
-   * ChannelHandler to ensure all users of the same channel get the same TransportClient object.
+   * @return 返回创建的TransportChannelHandler，其中包含可用于在此通道上进行通信的TransportClient。
+   * TransportClient直接与* ChannelHandler关联，以确保同一通道的所有用户获得相同的TransportClient对象。
    */
   public TransportChannelHandler initializePipeline(
       SocketChannel channel,
@@ -160,9 +158,8 @@ public class TransportContext {
   }
 
   /**
-   * Creates the server- and client-side handler which is used to handle both RequestMessages and
-   * ResponseMessages. The channel is expected to have been successfully created, though certain
-   * properties (such as the remoteAddress()) may not be available yet.
+   * 创建服务器端和客户端处理程序，用于处理RequestMessages和*ResponseMessages。
+   * 虽然某些属性（例如remoteAddress()）可能尚未可用，但预计该通道已成功创建。
    */
   private TransportChannelHandler createChannelHandler(Channel channel, RpcHandler rpcHandler) {
     TransportResponseHandler responseHandler = new TransportResponseHandler(channel);

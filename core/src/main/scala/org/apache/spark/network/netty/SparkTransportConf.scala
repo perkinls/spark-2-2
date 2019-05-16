@@ -48,7 +48,7 @@ object SparkTransportConf {
   private val MAX_DEFAULT_NETTY_THREADS = 8
 
   /**
-   * Utility for creating a [[TransportConf]] from a [[SparkConf]].
+   * 用于从[[SparkConf]]创建[[TransportConf]]
    * @param _conf the [[SparkConf]]
    * @param module the module name
    * @param numUsableCores if nonzero, this will restrict the server and client threads to only

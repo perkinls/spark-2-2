@@ -26,7 +26,7 @@ import java.util.Map;
 import static org.apache.spark.launcher.CommandBuilderUtils.*;
 
 /**
- * Command line interface for the Spark launcher. Used internally by Spark scripts.
+ * Spark启动器的命令行界面。由Spark脚本调用
  */
 class Main {
 
@@ -92,7 +92,7 @@ class Main {
     if (isWindows()) {
       System.out.println(prepareWindowsCommand(cmd, env));
     } else {
-      // In bash, use NULL as the arg separator since it cannot be used in an argument.
+      // 在bash中，使用NULL作为arg分隔符，因为它不能在参数中使用
       List<String> bashCmd = prepareBashCommand(cmd, env);
       for (String c : bashCmd) {
         System.out.print(c);
@@ -102,11 +102,10 @@ class Main {
   }
 
   /**
-   * Prepare a command line for execution from a Windows batch script.
+   * 从Windows批处理脚本准备要执行的命令行。
    *
-   * The method quotes all arguments so that spaces are handled as expected. Quotes within arguments
-   * are "double quoted" (which is batch for escaping a quote). This page has more details about
-   * quoting and other batch script fun stuff: http://ss64.com/nt/syntax-esc.html
+   * 该方法引用所有参数，以便按预期处理空格。参数中的引号是“双引号”（这是用于转义引号的批处理）。
+   * 此页面提供了有关引用和其他批处理脚本有趣内容的更多详细信息：http：//ss64.com/nt/syntax-esc.html
    */
   private static String prepareWindowsCommand(List<String> cmd, Map<String, String> childEnv) {
     StringBuilder cmdline = new StringBuilder();
@@ -122,8 +121,8 @@ class Main {
   }
 
   /**
-   * Prepare the command for execution from a bash script. The final command will have commands to
-   * set up any needed environment variables needed by the child process.
+   * 从bash脚本准备要执行的命令。最后一个命令将有命令
+   * 设置子进程所需的任何所需环境变量。
    */
   private static List<String> prepareBashCommand(List<String> cmd, Map<String, String> childEnv) {
     if (childEnv.isEmpty()) {
@@ -141,9 +140,8 @@ class Main {
   }
 
   /**
-   * A parser used when command line parsing fails for spark-submit. It's used as a best-effort
-   * at trying to identify the class the user wanted to invoke, since that may require special
-   * usage strings (handled by SparkSubmitArguments).
+   * 命令行解析失败以进行spark-submit时使用的解析器。在尝试识别用户想要调用的类时，它被用作尽力而为
+   *因为这可能需要特殊的用法字符串（由SparkSubmitArguments处理)
    */
   private static class MainClassOptionParser extends SparkSubmitOptionParser {
 

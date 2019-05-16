@@ -36,45 +36,27 @@ import org.apache.spark.internal.Logging
 import org.apache.spark.util.Utils
 
 /**
- * A client that submits applications to a [[RestSubmissionServer]].
   *
   * 将应用程序提交给[[RestSubmissionServer]]的客户端。
- *
- * In protocol version v1, the REST URL takes the form http://[host:port]/v1/submissions/[action],
- * where [action] can be one of create, kill, or status. Each type of request is represented in
- * an HTTP message sent to the following prefixes:
- *   (1) submit - POST to /submissions/create
- *   (2) kill - POST /submissions/kill/[submissionId]
- *   (3) status - GET /submissions/status/[submissionId]
   *
-  *  在协议版本v1中，REST URL采用了http://[host:port]/v1/submissions/[action]，
-  *  其中[动作]可以是创建、杀死或状态。每个请求类型都在发送到以下前缀的HTTP消息中表示:
-  *     (1)submit-post请求去 /submissions/创作
-  *     (2)kill - POST /提交/ kill/[submissionId]
-  *     (3)状态-获取  /submissions/状态/[submissionId]
- *
- * In the case of (1), parameters are posted in the HTTP body in the form of JSON fields.
- * Otherwise, the URL fully specifies the intended action of the client.
+  * 在协议版本v1中，REST URL采用了http://[host:port]/v1/submissions/[action]，
+  * 其中[动作]可以是创建、杀死或状态。每个请求类型都在发送到以下前缀的HTTP消息中表示:
+  * (1)submit-post请求去 /submissions/创作
+  * (2)kill - POST /提交/ kill/[submissionId]
+  * (3)状态-获取  /submissions/状态/[submissionId]
   *
   * 在(1)例中，参数以JSON字段的形式发布在HTTP主体上。否则，URL完全指定了客户机的预期操作。
- *
- * Since the protocol is expected to be stable across Spark versions, existing fields cannot be
- * added or removed, though new optional fields can be added. In the rare event that forward or
- * backward compatibility is broken, Spark must introduce a new protocol version (e.g. v2).
   *
   * 由于协议有望在Spark版本中保持稳定，因此不能添加或删除现有字段，不过可以添加新的可选字段。
   * 在前向或向后兼容性被破坏的罕见事件中，Spark必须引入新的协议版本(如v2)。
- *
- * The client and the server must communicate using the same version of the protocol. If there
- * is a mismatch, the server will respond with the highest protocol version it supports. A future
- * implementation of this client can use that information to retry using the version specified
- * by the server.
+  *
   *
   * 客户端和服务器必须使用相同版本的协议进行通信。如果出现不匹配，服务器将响应它所支持的最高协议版本。
   * 此客户机的未来实现可以使用该信息重新尝试使用服务器指定的版本。
   *
- */
+  */
 private[spark] class RestSubmissionClient(master: String) extends Logging {
+
   import RestSubmissionClient._
 
   private val supportedMasterPrefixes = Seq("spark://", "mesos://")
@@ -91,11 +73,10 @@ private[spark] class RestSubmissionClient(master: String) extends Logging {
   private val lostMasters = new mutable.HashSet[String]
 
   /**
-   * Submit an application specified by the parameters in the provided request.
-   *
-   * If the submission was successful, poll the status of the submission and report
-   * it to the user. Otherwise, report the error message provided by the server.
-   */
+    * 提交由提供的请求中的参数指定的应用程序。
+    *
+    * 如果提交成功，请轮询提交的状态并将其报告给用户。否则，报告服务器提供的错误消息。
+    */
   def createSubmission(request: CreateSubmissionRequest): SubmitRestProtocolResponse = {
     logInfo(s"Submitting a request to launch an application in $master.")
     var handled: Boolean = false
@@ -156,8 +137,8 @@ private[spark] class RestSubmissionClient(master: String) extends Logging {
 
   /** Request the status of a submission from the server. */
   def requestSubmissionStatus(
-      submissionId: String,
-      quiet: Boolean = false): SubmitRestProtocolResponse = {
+                               submissionId: String,
+                               quiet: Boolean = false): SubmitRestProtocolResponse = {
     logInfo(s"Submitting a request for the status of submission $submissionId in $master.")
 
     var handled: Boolean = false
@@ -186,13 +167,13 @@ private[spark] class RestSubmissionClient(master: String) extends Logging {
     response
   }
 
-  /** Construct a message that captures the specified parameters for submitting an application. */
+  /** 构造一条消息，捕获用于提交应用程序的指定参数。 */
   def constructSubmitRequest(
-      appResource: String,
-      mainClass: String,
-      appArgs: Array[String],
-      sparkProperties: Map[String, String],
-      environmentVariables: Map[String, String]): CreateSubmissionRequest = {
+                              appResource: String,
+                              mainClass: String,
+                              appArgs: Array[String],
+                              sparkProperties: Map[String, String],
+                              environmentVariables: Map[String, String]): CreateSubmissionRequest = {
     val message = new CreateSubmissionRequest
     message.clientSparkVersion = sparkVersion
     message.appResource = appResource
@@ -243,10 +224,10 @@ private[spark] class RestSubmissionClient(master: String) extends Logging {
   }
 
   /**
-   * Read the response from the server and return it as a validated [[SubmitRestProtocolResponse]].
-   * If the response represents an error, report the embedded message to the user.
-   * Exposed for testing.
-   */
+    * Read the response from the server and return it as a validated [[SubmitRestProtocolResponse]].
+    * If the response represents an error, report the embedded message to the user.
+    * Exposed for testing.
+    */
   private[rest] def readResponse(connection: HttpURLConnection): SubmitRestProtocolResponse = {
     import scala.concurrent.ExecutionContext.Implicits.global
     val responseFuture = Future {
@@ -278,11 +259,13 @@ private[spark] class RestSubmissionClient(master: String) extends Logging {
     }
 
     // scalastyle:off awaitresult
-    try { Await.result(responseFuture, 10.seconds) } catch {
+    try {
+      Await.result(responseFuture, 10.seconds)
+    } catch {
       // scalastyle:on awaitresult
-      case unreachable @ (_: FileNotFoundException | _: SocketException) =>
+      case unreachable@(_: FileNotFoundException | _: SocketException) =>
         throw new SubmitRestConnectionException("Unable to connect to server", unreachable)
-      case malformed @ (_: JsonProcessingException | _: SubmitRestProtocolException) =>
+      case malformed@(_: JsonProcessingException | _: SubmitRestProtocolException) =>
         throw new SubmitRestProtocolException("Malformed response received from server", malformed)
       case timeout: TimeoutException =>
         throw new SubmitRestConnectionException("No response from server", timeout)
@@ -333,7 +316,7 @@ private[spark] class RestSubmissionClient(master: String) extends Logging {
 
   /** Report the status of a newly created submission. */
   private def reportSubmissionStatus(
-      submitResponse: CreateSubmissionResponse): Unit = {
+                                      submitResponse: CreateSubmissionResponse): Unit = {
     if (submitResponse.success) {
       val submissionId = submitResponse.submissionId
       if (submissionId != null) {
@@ -344,15 +327,17 @@ private[spark] class RestSubmissionClient(master: String) extends Logging {
         logError("Application successfully submitted, but submission ID was not provided!")
       }
     } else {
-      val failMessage = Option(submitResponse.message).map { ": " + _ }.getOrElse("")
+      val failMessage = Option(submitResponse.message).map {
+        ": " + _
+      }.getOrElse("")
       logError(s"Application submission failed$failMessage")
     }
   }
 
   /**
-   * Poll the status of the specified submission and log it.
-   * This retries up to a fixed number of times before giving up.
-   */
+    * Poll the status of the specified submission and log it.
+    * This retries up to a fixed number of times before giving up.
+    */
   private def pollSubmissionStatus(submissionId: String): Unit = {
     (1 to REPORT_DRIVER_STATUS_MAX_TRIES).foreach { _ =>
       val response = requestSubmissionStatus(submissionId, quiet = true)
@@ -395,12 +380,12 @@ private[spark] class RestSubmissionClient(master: String) extends Logging {
   }
 
   /**
-   * When a connection exception is caught, return true if all masters are lost.
-   * Note that the heuristic used here does not take into account that masters
-   * can recover during the lifetime of this client. This assumption should be
-   * harmless because this client currently does not support retrying submission
-   * on failure yet (SPARK-6443).
-   */
+    * When a connection exception is caught, return true if all masters are lost.
+    * Note that the heuristic used here does not take into account that masters
+    * can recover during the lifetime of this client. This assumption should be
+    * harmless because this client currently does not support retrying submission
+    * on failure yet (SPARK-6443).
+    */
   private def handleConnectionException(masterUrl: String): Boolean = {
     if (!lostMasters.contains(masterUrl)) {
       logWarning(s"Unable to connect to server ${masterUrl}.")
@@ -416,22 +401,26 @@ private[spark] object RestSubmissionClient {
   val PROTOCOL_VERSION = "v1"
 
   /**
-   * Submit an application, assuming Spark parameters are specified through the given config.
-   * This is abstracted to its own method for testing purposes.
-   */
+    * Submit an application, assuming Spark parameters are specified through the given config.
+    * 提交应用程序，假设通过给定配置指定了Spark参数
+    * This is abstracted to its own method for testing purposes.
+    * 这被抽象为自己的测试方法。
+    */
   def run(
-      appResource: String,
-      mainClass: String,
-      appArgs: Array[String],
-      conf: SparkConf,
-      env: Map[String, String] = Map()): SubmitRestProtocolResponse = {
+           appResource: String,
+           mainClass: String,
+           appArgs: Array[String],
+           conf: SparkConf,
+           env: Map[String, String] = Map()): SubmitRestProtocolResponse = {
     val master = conf.getOption("spark.master").getOrElse {
       throw new IllegalArgumentException("'spark.master' must be set.")
     }
     val sparkProperties = conf.getAll.toMap
     val client = new RestSubmissionClient(master)
-    val submitRequest = client.constructSubmitRequest(
-      appResource, mainClass, appArgs, sparkProperties, env)
+
+    //构造一条消息，捕获用于提交应用程序的指定参数。
+    val submitRequest = client.constructSubmitRequest(appResource, mainClass, appArgs, sparkProperties, env)
+    //发送这条消息
     client.createSubmission(submitRequest)
   }
 
@@ -440,17 +429,23 @@ private[spark] object RestSubmissionClient {
       sys.error("Usage: RestSubmissionClient [app resource] [main class] [app args*]")
       sys.exit(1)
     }
+    /**
+      * 参数顺序是用户的jar，mainClass，后面全是用户自定义传入的变量
+      */
     val appResource = args(0)
     val mainClass = args(1)
     val appArgs = args.slice(2, args.length)
+
+    //创建一个SparkConf去加载默认的系统变量和classpath
     val conf = new SparkConf
+    //只会去获取SPARK_和MESOS_开头的环境变量
     val env = filterSystemEnvironment(sys.env)
     run(appResource, mainClass, appArgs, conf, env)
   }
 
   /**
-   * Filter non-spark environment variables from any environment.
-   */
+    * 从环境中过滤非spark环境变量
+    */
   private[rest] def filterSystemEnvironment(env: Map[String, String]): Map[String, String] = {
     env.filterKeys { k =>
       // SPARK_HOME is filtered out because it is usually wrong on the remote machine (SPARK-12345)

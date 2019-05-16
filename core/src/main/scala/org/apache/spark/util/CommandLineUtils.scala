@@ -32,7 +32,6 @@ private[spark] trait CommandLineUtils {
 
   private[spark] var printStream: PrintStream = System.err
 
-  // scalastyle:off println
 
   private[spark] def printWarning(str: String): Unit = printStream.println("Warning: " + str)
 

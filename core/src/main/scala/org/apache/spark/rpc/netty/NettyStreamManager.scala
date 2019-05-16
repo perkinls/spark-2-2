@@ -25,22 +25,18 @@ import org.apache.spark.rpc.RpcEnvFileServer
 import org.apache.spark.util.Utils
 
 /**
- * StreamManager implementation for serving files from a NettyRpcEnv.
+  * StreamManager implementation for serving files from a NettyRpcEnv.
   * StreamManager实现用于从NettyRpcEnv中提供文件。
- *
- * Three kinds of resources can be registered in this manager, all backed by actual files:
- *
- * - "/files": a flat list of files; used as the backend for [[SparkContext.addFile]].
- * - "/jars": a flat list of files; used as the backend for [[SparkContext.addJar]].
- * - arbitrary directories; all files under the directory become available through the manager,
- *   respecting the directory's hierarchy.
- *
- * Only streaming (openStream) is supported.
   *
-  *  可以在这个管理器中注册三种资源，全部由实际文件支持:
+  * Only streaming (openStream) is supported.
+  *
+  * 可以在这个管理器中注册三种资源，全部由实际文件支持:
   *  - "/files": a flat list of files; used as the backend for [[SparkContext.addFile]].
   *  - "/jars": a flat list of files; used as the backend for [[SparkContext.addJar]].
   *  - 任意目录;目录下的所有文件都可以通过manager获得，不管目录的层次结构。
+  * 尊重目录的层次结构
+  *
+  * 仅支持流传输
   */
 private[netty] class NettyStreamManager(rpcEnv: NettyRpcEnv)
   extends StreamManager with RpcEnvFileServer {

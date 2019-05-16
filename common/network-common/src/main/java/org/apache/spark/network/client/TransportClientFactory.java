@@ -109,41 +109,42 @@ public class TransportClientFactory implements Closeable {
   }
 
   /**
-   * Create a {@link TransportClient} connecting to the given remote host / port.
+   * ====>从缓存中获取TransportClient
+   * 创建连接到给定远程主机/端口的{@link TransportClient}。
    *
-   * We maintains an array of clients (size determined by spark.shuffle.io.numConnectionsPerPeer)
-   * and randomly picks one to use. If no client was previously created in the randomly selected
-   * spot, this function creates a new client and places it there.
+   * 我们维护一组客户端（大小由spark.shuffle.io.numConnectionsPerPeer确定
+   * 并随机选择一个使用。如果以前没有在随机选择的点中创建客户端，则此函数会创建一个新客户端并将其放在那里。
    *
-   * Prior to the creation of a new TransportClient, we will execute all
-   * {@link TransportClientBootstrap}s that are registered with this factory.
+   * 在创建新的TransportClient之前，我们将执行在此工厂注册的所有 {@link TransportClientBootstrap}。
    *
-   * This blocks until a connection is successfully established and fully bootstrapped.
+   * 这将阻塞，直到成功建立连接并完全自举。
    *
-   * Concurrency: This method is safe to call from multiple threads.
+   * 并发：从多个线程调用此方法是安全的
    */
   public TransportClient createClient(String remoteHost, int remotePort)
       throws IOException, InterruptedException {
-    // Get connection from the connection pool first.
-    // If it is not found or not active, create a new one.
-    // Use unresolved address here to avoid DNS resolution each time we creates a client.
+
+    /**
+     * createUnresolved可以在缓存中已经有TransportClient时避免不必要的域名解析，从connectionPool中获取对于的clientPool
+     * 如果没有，则新建clientPool，并放入connectionPool中
+     */
     final InetSocketAddress unresolvedAddress =
       InetSocketAddress.createUnresolved(remoteHost, remotePort);
 
-    // Create the ClientPool if we don't have it yet.
+    // 如果还没有ClientPool，请创建它
     ClientPool clientPool = connectionPool.get(unresolvedAddress);
     if (clientPool == null) {
       connectionPool.putIfAbsent(unresolvedAddress, new ClientPool(numConnectionsPerPeer));
       clientPool = connectionPool.get(unresolvedAddress);
     }
 
+    //随机选择一个TransportClient
     int clientIndex = rand.nextInt(numConnectionsPerPeer);
     TransportClient cachedClient = clientPool.clients[clientIndex];
 
+    //获取并返回激活的TransportClient
     if (cachedClient != null && cachedClient.isActive()) {
-      // Make sure that the channel will not timeout by updating the last use time of the
-      // handler. Then check that the client is still alive, in case it timed out before
-      // this code was able to update things.
+      //通过更新处理程序的最后使用时间，确保通道不会超时。然后检查客户端是否还活着，以防它在此代码能够更新之前超时。
       TransportChannelHandler handler = cachedClient.getChannel().pipeline()
         .get(TransportChannelHandler.class);
       synchronized (handler) {
@@ -157,8 +158,7 @@ public class TransportClientFactory implements Closeable {
       }
     }
 
-    // If we reach here, we don't have an existing connection open. Let's create a new one.
-    // Multiple threads might race here to create new connections. Keep only one of them active.
+    //如果我们到达此处，则我们没有打开现有连接。让我们创建一个新的。 多个线程可能会在这里竞争以创建新连接。只保留其中一个活跃。
     final long preResolveHost = System.nanoTime();
     final InetSocketAddress resolvedAddress = new InetSocketAddress(remoteHost, remotePort);
     final long hostResolveTimeMs = (System.nanoTime() - preResolveHost) / 1000000;
@@ -168,6 +168,7 @@ public class TransportClientFactory implements Closeable {
       logger.trace("DNS resolution for {} took {} ms", resolvedAddress, hostResolveTimeMs);
     }
 
+    //创建并返回TransportClient对象
     synchronized (clientPool.locks[clientIndex]) {
       cachedClient = clientPool.clients[clientIndex];
 
@@ -196,15 +197,23 @@ public class TransportClientFactory implements Closeable {
     return createClient(address);
   }
 
-  /** Create a completely new {@link TransportClient} to the remote address. */
+
+  /**
+   * 为远程地址创建一个全新的{@link TransportClient}
+   * @param address
+   * @return
+   * @throws IOException
+   * @throws InterruptedException
+   */
   private TransportClient createClient(InetSocketAddress address)
       throws IOException, InterruptedException {
     logger.debug("Creating new connection to {}", address);
 
+    //构建根引导索引程序bootstrap并对其进行配置
     Bootstrap bootstrap = new Bootstrap();
     bootstrap.group(workerGroup)
       .channel(socketChannelClass)
-      // Disable Nagle's Algorithm since we don't want packets to wait
+      //禁用Nagle算法，因为我们不希望数据包等待
       .option(ChannelOption.TCP_NODELAY, true)
       .option(ChannelOption.SO_KEEPALIVE, true)
       .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, conf.connectionTimeoutMs())
@@ -213,6 +222,7 @@ public class TransportClientFactory implements Closeable {
     final AtomicReference<TransportClient> clientRef = new AtomicReference<>();
     final AtomicReference<Channel> channelRef = new AtomicReference<>();
 
+    //为根引导程序设置管道初始化回调函数
     bootstrap.handler(new ChannelInitializer<SocketChannel>() {
       @Override
       public void initChannel(SocketChannel ch) {
@@ -222,7 +232,7 @@ public class TransportClientFactory implements Closeable {
       }
     });
 
-    // Connect to the remote server
+    //连接到远程服务器，当连接成功时会回调函数，将TransportClient和Channel对象分别设置到原子饮用clientRef与channelRef
     long preConnect = System.nanoTime();
     ChannelFuture cf = bootstrap.connect(address);
     if (!cf.await(conf.connectionTimeoutMs())) {
@@ -236,11 +246,14 @@ public class TransportClientFactory implements Closeable {
     Channel channel = channelRef.get();
     assert client != null : "Channel future completed successfully with null client";
 
+    //在将客户端标记为成功之前，同步执行任何客户端引导
     // Execute any client bootstraps synchronously before marking the Client as successful.
     long preBootstrap = System.nanoTime();
     logger.debug("Connection to {} successful, running bootstraps...", address);
     try {
       for (TransportClientBootstrap clientBootstrap : clientBootstraps) {
+        //给TransportClient设置客户端引导程序，即设置TransportClientFactory的
+        // TransportClientBootstrap列表
         clientBootstrap.doBootstrap(client, channel);
       }
     } catch (Exception e) { // catch non-RuntimeExceptions too as bootstrap may be written in Scala
